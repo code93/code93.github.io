@@ -20,7 +20,7 @@ class App{
         this.camera.position.set(0,0,4);
 
         // create a scene and a background colour [0xaaaaaa is gray]
-        this.scene = new THREE.scene();
+        this.scene = new THREE.Scene();
         this.scene.background =  new THREE.Color(0xaaaaaa);
 
         const ambient = new THREE.HemisphereLight( 0xffffff,  0xbbbbff, 0.3);
