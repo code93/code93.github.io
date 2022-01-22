@@ -4,6 +4,9 @@ import { OrbitControls } from './libs/three/jsm/OrbitControls.js';
 class App{
     constructor(){
 
+        const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+
         // ---------THREE.PerspectiveCamera-------
         // Field of view in degrees =60, Aspect Ratio of rendered view i.e width/height,
         // Near plane. Anything closer than this will be hidden,
