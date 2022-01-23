@@ -39,7 +39,45 @@ class App{
 
         this.renderer.setAnimationLoop( this.render.bind(this) );
 
-        const geometry = new THREE.BoxBufferGeometry();
+        // CircleBufferGeometry parameters (I) Radius, (II) Segments
+        // (III) Start Angle (IV) End Angle
+        // replace Replace Box with Circle, Cone, Cylinder, Dodecahedron, Icosahedron
+        // Octahedron, Plane, Sphere, Tetrahedron, Torus or TorusKnot
+        // const geometry = new THREE.CircleBufferGeometry(1,32, 0, Math.PI);
+        // const geometry = new THREE.BoxBufferGeometry();
+
+        // Drawing a star:
+        // A shape instance has moveTo and lineTo parameters
+        // Define innerRadius and outerRadius for the star
+        // set an inc value, which is angle to move by while drawing each line
+        // setting a for loop, from angle inc to a complete revolution
+        // radius property alternates between inner and outer radius in the loop
+        // Then drawing a line cos.theta * radius, sin.theta * radius
+        // Rrepeating this ten times alterating and inc rotations we have star shape
+
+        const shape = new THREE.Shape();
+        const outerRadius = 0.8;
+        const innerRadius = 0.4;
+        const PI2 = Math.PI * 2;
+        const inc = PI2/10;
+
+        shape.moveTo( outerRadius, 0 )
+        let inner = true;
+
+        for (let theta = inc ; theta<PI2; theta+=inc){
+            const radius =(inner) ? innerRadius : outerRadius;
+            shape.lineTo( Math.cos(theta)* radius, Math.sin(theta)* radius)
+            inner = !inner;
+        }
+
+        const extrideSettings = {
+            steps: 1,
+            depth: 1,
+            bevelEnabled: false
+        }
+
+        const geometry = new THREE.ExtrudeGeometry( shape, extrideSettings )
+
         const material = new THREE.MeshStandardMaterial( { color: 0xff0000 } )
 
         this.mesh = new THREE.Mesh( geometry, material);
