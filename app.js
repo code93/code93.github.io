@@ -1,5 +1,10 @@
 import * as THREE from '../libs/three/three.module.js';
+import { GLTFLoader } from '../libs/three/jsm/GLTFLoader.js';
+import { FBXLoader } from '../libs/three/jsm/FBXLoader.js';
+import { RGBELoader } from '../libs/three/jsm/RGBELoader.js';
 import { OrbitControls } from '../libs/three/jsm/OrbitControls.js';
+import { LoadingBar } from '../libs/LoadingBar.js';
+import { vector3ToString } from '../libs/DebugUtils.js';
 
 class App{
 	constructor(){
@@ -7,53 +12,91 @@ class App{
 		document.body.appendChild( container );
         
 		this.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
-		this.camera.position.set( 0, 0, 4 );
+		this.camera.position.set( 0, 4, 14 );
         
 		this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color( 0xaaaaaa );
 
-		const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 0.3);
+		const ambient = new THREE.HemisphereLight(0xffffff, 0x666666, 0.3);
 		this.scene.add(ambient);
         
         const light = new THREE.DirectionalLight();
-        light.position.set( 0.2, 1, 1);
+        light.position.set( 0.2, 1, 1.5);
         this.scene.add(light);
 			
 		this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
         this.renderer.outputEncoding = THREE.sRGBEncoding;
+        this.renderer.physicallyCorrectLights = true;
+        this.setEnvironment();
 		container.appendChild( this.renderer.domElement );
 		
-        //Replace Box with Circle, Cone, Cylinder, Dodecahedron, Icosahedron, Octahedron, Plane, Sphere, Tetrahedron, Torus or TorusKnot
-        const geometry = new THREE.TorusKnotBufferGeometry(); 
+        //Add code here
+        this.LoadingBar = new LoadingBar();
+        // to load FBX instead of GLTF use: this.loadFBX(); and repplace GlTF with FBX in the method 
+        this.loadGLTF();
         
-        // Material that uses simple lighting is MeshLambertMaterial
-        // it calculates the lighting at the vertex and interpolates
-        // this value across each rendered triangle.
-        // const material = new THREE.MeshLambertMaterial( { color: 0xFF0000 });
-
-        // To see specular highlights use MeshPhongMaterial
-        // it calculates the lighting at the pixel and can show specular highlights.
-        const material = new THREE.MeshPhongMaterial( { color: 0xFF0000, specular: 0x444444, shining: 60 });
-
-        // very complex material that is used nowadays is MeshStandardMaterial
-        // check out threejs.org docs to see how it works
-        // check out other materials and geomteries 
-
-        // const material = new THREE.MeshBasicMaterial( { color: 0xFF0000 });
-
-
-        this.mesh = new THREE.Mesh( geometry, material );
         
-        this.scene.add(this.mesh);
+        this.controls = new OrbitControls( this.camera, this.renderer.domElement );
+        this.controls.target.set(0, 3.5, 0);
+        this.controls.update();
         
-        const controls = new OrbitControls( this.camera, this.renderer.domElement );
-        
-        this.renderer.setAnimationLoop(this.render.bind(this));
-    
         window.addEventListener('resize', this.resize.bind(this) );
 	}	
+    
+    setEnvironment(){
+        const loader = new RGBELoader().setDataType( THREE.UnsignedByteType );
+        const pmremGenerator = new THREE.PMREMGenerator( this.renderer );
+        pmremGenerator.compileEquirectangularShader();
+        
+        const self = this;
+        
+        loader.load( '../../assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
+          const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+          pmremGenerator.dispose();
+
+          self.scene.environment = envMap;
+
+        }, undefined, (err)=>{
+            console.error( 'An error occurred setting the environment');
+        } );
+    }
+    
+    loadGLTF(){
+        const self = this;
+        // params = path/url, onLoad, onProgress, onError
+        const loader = new GLTFLoader().setPath('../assets/')
+
+        loader.load(
+            'office-chair.glb',
+            function(gltf){
+                // set scene to chair
+                self.chair = gltf.scene;
+                const bbox = new THREE.Box3().setFromObject( gltf.scene );
+                console.log(`min:${vector3ToString(bbox.min, 2)} - 
+                max:${vector3ToString(bbox.max,2)}`);
+                // add scene 
+                self.scene.add( gltf.scene );
+                // hide loading bar
+                self.LoadingBar.visible = false;
+                self.renderer.setAnimationLoop( self.render.bind(self) )
+            },
+            
+            function(xhr){
+                self.LoadingBar.progress = xhr.loaded/xhr.total;
+            },
+
+            function(err){
+                console.log( 'An error happened' );
+
+            }
+        )
+
+    }
+    
+    loadFBX(){
+    }
     
     resize(){
         this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -62,8 +105,7 @@ class App{
     }
     
 	render( ) {   
-        this.mesh.rotateY( 0.01 );
-        this.mesh.rotateX( 0.005 );
+        this.chair.rotateY( 0.01 );
         this.renderer.render( this.scene, this.camera );
     }
 }
