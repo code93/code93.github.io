@@ -1,5 +1,6 @@
 import * as THREE from '../../libs/three/three.module.js';
-import { VRButton } from './VRButton.js';
+import { VRButton } from '../../libs/VRButton.js';
+import { XRControllerModelFactory } from '../../libs/three/jsm/XRControllerModelFactory.js';
 import { BoxLineGeometry } from '../../libs/three/jsm/BoxLineGeometry.js';
 import { Stats } from '../../libs/stats.module.js';
 import { OrbitControls } from '../../libs/three/jsm/OrbitControls.js';
@@ -36,9 +37,14 @@ class App{
         this.controls.update();
         
         this.stats = new Stats();
+        document.body.appendChild( this.stats.dom );
+        
+        this.raycaster = new THREE.Raycaster();
+        this.workingMatrix = new THREE.Matrix4();
+        this.workingVector = new THREE.Vector3();
         
         this.initScene();
-        this.setupVR();
+        this.setupXR();
         
         window.addEventListener('resize', this.resize.bind(this) );
         
@@ -74,9 +80,43 @@ class App{
         }
     }
     
-    setupVR(){
+    setupXR(){
         this.renderer.xr.enabled = true;
+        
         const button = new VRButton( this.renderer );
+        
+        this.controllers = this.buildControllers();
+    }
+    
+    buildControllers(){
+        const controllerModelFactory = new XRControllerModelFactory();
+
+        const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
+
+        const line = new THREE.Line( geometry );
+        line.name = 'line';
+		line.scale.z = 10;
+        
+        const controllers = [];
+        
+        for(let i=0; i<=1; i++){
+            const controller = this.renderer.xr.getController( i );
+            controller.add( line.clone() );
+            controller.userData.selectPressed = false;
+            this.scene.add( controller );
+            
+            controllers.push( controller );
+            
+            const grip = this.renderer.xr.getControllerGrip( i );
+            grip.add( controllerModelFactory.createControllerModel( grip ) );
+            this.scene.add( grip );
+        }
+        
+        return controllers;
+    }
+    
+    handleController( controller ){
+        
     }
     
     resize(){
@@ -87,6 +127,13 @@ class App{
     
 	render( ) {   
         this.stats.update();
+        
+        if (this.controllers ){
+            const self = this;
+            this.controllers.forEach( ( controller) => { 
+                self.handleController( controller ) 
+            });
+        }
         
         this.renderer.render( this.scene, this.camera );
     }
