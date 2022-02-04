@@ -1,8 +1,9 @@
-import * as THREE from '../../libs/three/three.module.js';
-import { VRButton } from './VRButton.js';
-import { BoxLineGeometry } from '../../libs/three/jsm/BoxLineGeometry.js';
-import { Stats } from '../../libs/stats.module.js';
-import { OrbitControls } from '../../libs/three/jsm/OrbitControls.js';
+import * as THREE from '../libs/three/three.module.js';
+import { VRButton } from '../libs/three/jsm/VRButton.js';
+import { XRControllerModelFactory } from '../libs/three/jsm/XRControllerModelFactory.js';
+import { BoxLineGeometry } from '../libs/three/jsm/BoxLineGeometry.js';
+import { Stats } from '../libs/stats.module.js';
+import { OrbitControls } from '../libs/three/jsm/OrbitControls.js';
 
 
 class App{
@@ -36,6 +37,7 @@ class App{
         this.controls.update();
         
         this.stats = new Stats();
+        container.appendChild( this.stats.dom );
         
         this.initScene();
         this.setupVR();
@@ -50,33 +52,39 @@ class App{
     }
     
     initScene(){
-        this.radius = 0.08;
-        
+        // units of Length experienced in vr are in metric quantity,
+        // 1 unit = 1 metre
+        // Therefore radius below is  8 cm
+        this.radius = 0.08
+
         this.room = new THREE.LineSegments(
-					new BoxLineGeometry( 6, 6, 6, 10, 10, 10 ),
-					new THREE.LineBasicMaterial( { color: 0x808080 } )
-				);
-        this.room.geometry.translate( 0, 3, 0 );
+            new BoxLineGeometry(6,6,6,10,10,10),
+            new THREE.LineBasicMaterial({color: 0x808080})
+        );
+        this.room.geometry.translate( 0, 3, 0);
         this.scene.add( this.room );
-        
+
+     
         const geometry = new THREE.IcosahedronBufferGeometry( this.radius, 2 );
 
-        for ( let i = 0; i < 200; i ++ ) {
+        for(let i =0; i<200; i++){
+            const object = new THREE.Mesh( geometry, new 
+                THREE.MeshLambertMaterial({
+                    color: Math.random() * 0xFFFFFF
+                }));
 
-            const object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } ) );
+                object.position.x = this.random(-2,2);
+                object.position.y = this.random(-2,2);
+                object.position.z = this.random(-2,2);
 
-            object.position.x = this.random( -2, 2 );
-            object.position.y = this.random( -2, 2 );
-            object.position.z = this.random( -2, 2 );
-
-            this.room.add( object );
-
+                this.room.add( object );
         }
+
     }
-    
+    // to enter into vr session
     setupVR(){
         this.renderer.xr.enabled = true;
-        const button = new VRButton( this.renderer );
+        document.body.appendChild( VRButton.createButton( this.renderer ) );
     }
     
     resize(){
